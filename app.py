@@ -1,10 +1,53 @@
 import streamlit as st
 import pandas as pd
 from pydantic import BaseModel
-from utils import load_model, predict_price
-from models import Device
 import csv
-from WF import write_row
+from csv import writer
+import pickle
+
+def load_model(model_path):
+    with open(model_path, 'rb') as f:
+        model = pickle.load(f)
+    return model
+
+def predict_price(model, device):
+    # Prepare input features from device data
+    prediction = model.predict(device)
+    return prediction
+
+def write_row(file, L):
+    with open(file, 'a') as f_object:
+
+        writer_object = writer(f_object)
+
+
+        writer_object.writerow(L)
+
+        f_object.close()
+class Device(BaseModel):
+    id:int
+    battery_power:int
+    blue:int	
+    clock_speed:int
+    dual_sim:int
+    fc:int
+    four_g:int
+    int_memory:int
+    m_dep:int
+    mobile_wt:int
+    n_cores:int
+    pc:int
+    px_height:int	
+    px_width:int	
+    ram	:int
+    sc_h:int
+    sc_w:int
+    talk_time:int
+    three_g:int
+    touch_screen:int	
+    wifi:int
+
+
 
 # Load the ML model
 model = load_model('rfmodel.pkl')
