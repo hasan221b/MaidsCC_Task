@@ -105,11 +105,11 @@ st.header("Predict Device Price")
 device_id_for_prediction = st.number_input("Enter Device ID for price prediction", min_value=0)
 if st.button("Predict Price"):
     price = predict_price_for_device(device_id_for_prediction)
-    if y_pred == 0:
+    if price == 0:
         result = 'low cost'
-    elif y_pred == 1:
+    elif price == 1:
         result = 'medium cost'
-    elif y_pred == 2:
+    elif price == 2:
         result = 'high cost'
     else:
         result = 'very high cost'
