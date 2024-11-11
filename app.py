@@ -92,10 +92,7 @@ def predict_price_for_device(device_id: int):
 # Streamlit app
 st.title("Device Price Predictor")
 
-# Get devices
-st.header("Available Devices")
-device_ids = get_devices()
-st.write(device_ids)
+
 
 # Get specific device details
 device_id = st.number_input("Enter Device ID to get details", min_value=0)
