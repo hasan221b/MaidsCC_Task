@@ -90,7 +90,7 @@ def predict_price_for_device(device_id: int):
     return predicted_price.tolist()[0]
 
 # Streamlit app
-st.title("Device Price Predictor")
+st.title("Device Management")
 
 
 
