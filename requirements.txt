@@ -1,2 +1,2 @@
 ﻿pydantic==2.8.2
-pickle==4.0
+pickle5==4.0
