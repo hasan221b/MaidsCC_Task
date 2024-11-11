@@ -1,91 +1,91 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel  
+import streamlit as st
+import pandas as pd
+from pydantic import BaseModel
 from utils import load_model, predict_price
 from models import Device
-import pandas as pd
 import csv
 from WF import write_row
 
-import streamlit as st
-import requests
-import uvicorn
-from threading import Thread
-
-# FastAPI app
-app = FastAPI()
-
 # Load the ML model
 model = load_model('rfmodel.pkl')
-
 data = pd.read_csv('test.csv')
 
-@app.get("/devices")
-async def get_devices():
-    result = data['id'].tolist()
-    return result
+# Function to get all devices
+def get_devices():
+    return data['id'].tolist()
 
-@app.get("/devices/{device_id}")
-async def get_device(device_id: int):
-    device = data.loc[data['id'] == device_id][['battery_power','int_memory',
-                       'px_height','px_width','ram','sc_h','sc_w']]
-    device_dict = device.to_dict()
+# Function to get specific device details
+def get_device(device_id: int):
+    device = data.loc[data['id'] == device_id][['battery_power', 'int_memory',
+                                                'px_height', 'px_width', 'ram', 'sc_h', 'sc_w']]
+    return device.to_dict()
 
-    return device_dict
-
-@app.post("/devices")
-async def add_device(device: Device):
+# Function to add a device
+def add_device(device: Device):
+    device_data = list(device.__dict__.values())
     with open('devices.csv', 'a', newline='') as f_object:
         writer_object = csv.writer(f_object)
-        device_data = list(device.__dict__.values())
+        writer_object.writerow(device_data)
+    write_row('test.csv', device_data)
+    return "Device added successfully"
 
-        write_row('test.csv', device_data)
-        return {"message": "Device added successfully"}
-
-@app.post("/predict/{device_id}")
-async def predict_price_for_device(device_id: int):
-    device = data.loc[data['id'] == device_id][['battery_power','int_memory',
-                       'px_height','px_width','ram','sc_h','sc_w']]
-    
+# Function to predict price for a device
+def predict_price_for_device(device_id: int):
+    device = data.loc[data['id'] == device_id][['battery_power', 'int_memory',
+                                                'px_height', 'px_width', 'ram', 'sc_h', 'sc_w']]
     if device.empty:
-        raise HTTPException(status_code=404, detail="Device not found")
-
+        return "Device not found"
+    
     device_features = device.values.reshape(1, -1)
-    device_features = pd.DataFrame(device_features, columns=['battery_power', 'int_memory', 'px_height', 'px_width', 'ram', 'sc_h', 'sc_w'])
+    device_features = pd.DataFrame(device_features, columns=['battery_power', 'int_memory', 'px_height',
+                                                             'px_width', 'ram', 'sc_h', 'sc_w'])
     try:
         predicted_price = predict_price(model, device_features)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return f"Error: {str(e)}"
     
-    return {"predicted_price": predicted_price.tolist()[0]}
-
-def run_fastapi():
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    return predicted_price.tolist()[0]
 
 # Streamlit app
-def run_streamlit():
-    st.title("Device Price Prediction")
+st.title("Device Price Predictor")
 
-    device_id = st.number_input("Enter Device ID", min_value=0, step=1)
-    if st.button("Get Device Details"):
-        response = requests.get(f"http://localhost:8000/devices/{device_id}")
-        if response.status_code == 200:
-            st.json(response.json())
-        else:
-            st.error("Device not found")
+# Get devices
+st.header("Available Devices")
+device_ids = get_devices()
+st.write(device_ids)
 
-    if st.button("Predict Price"):
-        response = requests.post(f"http://localhost:8000/predict/{device_id}")
-        if response.status_code == 200:
-            predicted_price = response.json().get("predicted_price")
-            st.success(f"Predicted Price: {predicted_price}")
-        else:
-            st.error("Prediction failed")
+# Get specific device details
+device_id = st.number_input("Enter Device ID to get details", min_value=0)
+if st.button("Get Device Details"):
+    device_details = get_device(device_id)
+    st.write(device_details)
 
-if __name__ == "__main__":
-    # Run FastAPI in a separate thread
-    thread = Thread(target=run_fastapi)
-    thread.start()
+# Predict price for a device
+st.header("Predict Device Price")
+device_id_for_prediction = st.number_input("Enter Device ID for price prediction", min_value=0)
+if st.button("Predict Price"):
+    price = predict_price_for_device(device_id_for_prediction)
+    st.write(f"Predicted Price: {price}")
 
-    # Run Streamlit
-    run_streamlit()
+# Add a new device
+st.header("Add a New Device")
+battery_power = st.number_input("Battery Power", min_value=0)
+int_memory = st.number_input("Internal Memory", min_value=0)
+px_height = st.number_input("Pixel Height", min_value=0)
+px_width = st.number_input("Pixel Width", min_value=0)
+ram = st.number_input("RAM", min_value=0)
+sc_h = st.number_input("Screen Height", min_value=0)
+sc_w = st.number_input("Screen Width", min_value=0)
+
+if st.button("Add Device"):
+    new_device = Device(
+        battery_power=battery_power,
+        int_memory=int_memory,
+        px_height=px_height,
+        px_width=px_width,
+        ram=ram,
+        sc_h=sc_h,
+        sc_w=sc_w
+    )
+    message = add_device(new_device)
+    st.write(message)
